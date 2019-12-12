@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"go-crontab/master"
 	"os"
 	"os/signal"
@@ -19,11 +18,8 @@ func main() {
 	}
 
 	// 启动APIServer，提供http服务
-	if err = master.InitApiServer(); err !=nil {
-		panic(err)
-	}
+	master.InitApiServer()
 
-	fmt.Printf("start on: %d \n", master.GConfig.APIPort)
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, os.Kill, syscall.SIGTERM)
 	<-interrupt

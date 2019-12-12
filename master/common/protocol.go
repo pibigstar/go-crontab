@@ -6,7 +6,8 @@ import (
 )
 
 const (
-	EtcdJobPrefix = "/cron/job/%s"
+	EtcdJobPrefix = "/cron/job/"
+	EtcdKillJobPrefix = "/cron/kill/"
 )
 
 type Job struct {
@@ -16,8 +17,12 @@ type Job struct {
 }
 
 func BuildJobName(job *Job) string {
-	return fmt.Sprintf(EtcdJobPrefix,job.Name)
+	return fmt.Sprintf(EtcdJobPrefix + "%s",job.Name)
 }
+func BuildKillJobName(job *Job) string {
+	return fmt.Sprintf(EtcdKillJobPrefix + "%s",job.Name)
+}
+
 
 type Response struct {
 	Code int `json:"code"`
