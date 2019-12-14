@@ -1,4 +1,4 @@
-package woker
+package worker
 
 import (
 	"context"

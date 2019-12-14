@@ -1,26 +1,27 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"go-crontab/woker"
+	"go-crontab/worker"
 )
 
 func main() {
 	var err error
 	// 初始化环境
-	woker.InitDev()
+	worker.InitDev()
 
 	// 初始化调度器
-	woker.InitScheduler()
+	worker.InitScheduler()
 
 	// 初始化JobManager
-	if err = woker.InitJobManager(); err != nil {
+	if err = worker.InitJobManager(); err != nil {
 		panic(err)
 	}
-
+	fmt.Println("worker start...")
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, os.Kill, syscall.SIGTERM)
 	<-interrupt

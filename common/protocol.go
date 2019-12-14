@@ -20,12 +20,32 @@ type Job struct {
 	CronExpr string `json:"cronExpr"`
 }
 
+// 任务调度计划
 type JobSchedulePlan struct {
 	Job      *Job
 	Expr     *cronexpr.Expression
 	NextTime time.Time
 }
 
+// 任务执行状态
+type JobExecuteStatus struct {
+	Job *Job
+	// 预期的执行时间
+	PlanTime time.Time
+	// 实际的执行时间
+	RealTime time.Time
+}
+
+// 任务执行结果
+type JobExecuteResult struct {
+	JobPlan   *JobSchedulePlan
+	OutPut    []byte
+	Err       error
+	StartTime time.Time
+	EndTime   time.Time
+}
+
+// 任务事件
 type JobEvent struct {
 	Job       *Job
 	EventType mvccpb.Event_EventType
