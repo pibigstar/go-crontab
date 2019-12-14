@@ -5,18 +5,19 @@ import (
 	"encoding/json"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/gogf/gf/os/glog"
-	"go-crontab/master/common"
+	"go-crontab/common"
 	"log"
 	"time"
 )
+
 var GJobManager *jobManager
 
 type jobManager struct {
-	cli *clientv3.Client
+	cli   *clientv3.Client
 	lease clientv3.Lease
 }
 
-func InitJobManager()  error {
+func InitJobManager() error {
 	cli, err := clientv3.New(clientv3.Config{
 		// 集群列表
 		Endpoints:   []string{"106.54.212.69:2379"},
@@ -27,7 +28,7 @@ func InitJobManager()  error {
 	}
 	lease := clientv3.NewLease(cli)
 	GJobManager = &jobManager{
-		cli: cli,
+		cli:   cli,
 		lease: lease,
 	}
 
@@ -35,7 +36,7 @@ func InitJobManager()  error {
 	go func() {
 		for {
 			watch := GJobManager.cli.Watch(context.TODO(), common.EtcdKillJobPrefix, clientv3.WithPrefix())
-			resp := <- watch
+			resp := <-watch
 			glog.Printf("resp: %+v \n", resp)
 		}
 	}()
@@ -43,16 +44,16 @@ func InitJobManager()  error {
 	return nil
 }
 
-func (j *jobManager) SaveJob(ctx context.Context, job *common.Job) (*common.Job,error) {
+func (j *jobManager) SaveJob(ctx context.Context, job *common.Job) (*common.Job, error) {
 	bs, _ := json.Marshal(job)
 	putResp, err := j.cli.Put(ctx, common.BuildJobName(job), string(bs), clientv3.WithPrevKV())
-	if err !=nil {
+	if err != nil {
 		return nil, err
 	}
 	var old *common.Job
 	// 更新操作，返回旧值
 	if putResp.PrevKv != nil {
-		 _ = json.Unmarshal(putResp.PrevKv.Value, &old)
+		_ = json.Unmarshal(putResp.PrevKv.Value, &old)
 	}
 	return old, nil
 }
@@ -60,7 +61,7 @@ func (j *jobManager) SaveJob(ctx context.Context, job *common.Job) (*common.Job,
 func (j *jobManager) DeleteJob(ctx context.Context, job *common.Job) (*common.Job, error) {
 
 	deleteResp, err := j.cli.Delete(ctx, common.BuildJobName(job), clientv3.WithPrevKV())
-	if err !=nil {
+	if err != nil {
 		return nil, err
 	}
 	// 删除操作，返回旧值
@@ -73,7 +74,7 @@ func (j *jobManager) DeleteJob(ctx context.Context, job *common.Job) (*common.Jo
 
 func (j *jobManager) ListJobs(ctx context.Context) ([]*common.Job, error) {
 	getResp, err := j.cli.Get(ctx, common.EtcdJobPrefix, clientv3.WithPrefix())
-	if err !=nil {
+	if err != nil {
 		return nil, err
 	}
 	var jobs []*common.Job
@@ -97,8 +98,8 @@ func (j *jobManager) SaveJobWithLease(ctx context.Context, job *common.Job) erro
 	}
 
 	_, err = j.cli.Put(ctx, common.BuildKillJobName(job), "kill", clientv3.WithLease(leaseResp.ID))
-	if err !=nil {
-		return  err
+	if err != nil {
+		return err
 	}
 
 	return nil

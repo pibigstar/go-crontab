@@ -9,7 +9,7 @@ import (
 func TestCron(t *testing.T) {
 	var (
 		expression *cronexpr.Expression
-		err error
+		err        error
 	)
 	cron := "*/2 * * * * * *"
 	if expression, err = cronexpr.Parse(cron); err != nil {

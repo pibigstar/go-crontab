@@ -11,9 +11,9 @@ import (
 )
 
 type User struct {
-	Name string `bson:"name"`
+	Name     string `bson:"name"`
 	Password string `bson:"password"`
-	Age int `bson:"age"`
+	Age      int    `bson:"age"`
 }
 
 func TestMongoDB(t *testing.T) {
@@ -53,7 +53,7 @@ func TestMongoDB(t *testing.T) {
 	}
 	// 批量插入
 	if manyResult, err := collection.InsertMany(ctx, users); err == nil {
-		for _,id := range manyResult.InsertedIDs {
+		for _, id := range manyResult.InsertedIDs {
 			t.Log(id.(primitive.ObjectID).Hex())
 		}
 	}
@@ -62,7 +62,7 @@ func TestMongoDB(t *testing.T) {
 	var skip int64 = 0
 	var limit int64 = 10
 	opts := &options.FindOptions{
-		Skip: &skip,
+		Skip:  &skip,
 		Limit: &limit,
 	}
 	cur, err := collection.Find(ctx, bson.D{}, opts)
@@ -83,6 +83,5 @@ func TestMongoDB(t *testing.T) {
 	if err := cur.Err(); err != nil {
 		t.Error(err)
 	}
-
 
 }

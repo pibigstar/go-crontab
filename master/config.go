@@ -5,8 +5,8 @@ import "flag"
 var GConfig *Config
 
 type Config struct {
-	APIPort int
-	ReadTimeOut int
+	APIPort      int
+	ReadTimeOut  int
 	WriteTimeOut int
 }
 

@@ -9,9 +9,9 @@ import (
 
 func TestCmd(t *testing.T) {
 	var (
-		cmd *exec.Cmd
+		cmd    *exec.Cmd
 		output []byte
-		err error
+		err    error
 	)
 	cmd = exec.Command("bash.exe", "-c", "ls -l")
 
@@ -22,17 +22,17 @@ func TestCmd(t *testing.T) {
 }
 
 type result struct {
-	err error
+	err    error
 	output []byte
 }
 
 func TestCmdWithContext(t *testing.T) {
 	var (
-		cmd *exec.Cmd
-		output []byte
-		err error
-		cancel context.CancelFunc
-		ctx context.Context
+		cmd        *exec.Cmd
+		output     []byte
+		err        error
+		cancel     context.CancelFunc
+		ctx        context.Context
 		resultChan chan *result
 	)
 
@@ -52,7 +52,7 @@ func TestCmdWithContext(t *testing.T) {
 	// 取消任务
 	cancel()
 
-	result := <- resultChan
+	result := <-resultChan
 
 	t.Log(result.err, string(result.output))
 }

@@ -26,15 +26,14 @@ func TestLock(t *testing.T) {
 		leaseId        clientv3.LeaseID
 		keepRespChan   <-chan *clientv3.LeaseKeepAliveResponse
 		txn            clientv3.Txn
-		txnResp *clientv3.TxnResponse
+		txnResp        *clientv3.TxnResponse
 		key            = "/job/lock/job1"
-
 	)
 
 	ctx, cancelFunc = context.WithCancel(ctx)
 	// 1. 申请一个租约
 	lease := clientv3.NewLease(cli)
-	if leaseGrantResp, err = lease.Grant(ctx, 5); err !=nil {
+	if leaseGrantResp, err = lease.Grant(ctx, 5); err != nil {
 		t.Error(err)
 	}
 	leaseId = leaseGrantResp.ID
@@ -47,12 +46,12 @@ func TestLock(t *testing.T) {
 	// 2. 自动续租
 	go func() {
 		for {
-			if keepRespChan, err = lease.KeepAlive(ctx, leaseId); err !=nil {
+			if keepRespChan, err = lease.KeepAlive(ctx, leaseId); err != nil {
 				t.Error(err)
 			}
 			select {
 			case resp := <-keepRespChan:
-				if resp == nil{
+				if resp == nil {
 					t.Log("租约已失效")
 					goto END
 				} else {
@@ -60,18 +59,18 @@ func TestLock(t *testing.T) {
 				}
 			}
 		}
-		END:
+	END:
 	}()
 
 	// 3. 开启事务
 	txn = cli.Txn(ctx)
 	// 如果createRevision为0，那么证明这个key还没被设置过值
 	txn.If(clientv3.Compare(clientv3.CreateRevision(key), "=", 0)).
-		Then(clientv3.OpPut(key,"pibigstar", clientv3.WithLease(leaseId))).
+		Then(clientv3.OpPut(key, "pibigstar", clientv3.WithLease(leaseId))).
 		Else(clientv3.OpGet(key))
 
 	// 提交事务
-	if txnResp, err = txn.Commit(); err !=nil {
+	if txnResp, err = txn.Commit(); err != nil {
 		t.Error(err)
 	}
 	// 没有提交成功，进入了then方法

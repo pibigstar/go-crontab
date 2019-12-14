@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 )
+
 var (
 	ctx = context.TODO()
 )
@@ -25,7 +26,7 @@ func TestEtcd(t *testing.T) {
 	// 监听值
 	go func() {
 		watch := cli.Watch(ctx, "name")
-		res := <- watch
+		res := <-watch
 		t.Log("name发生改变", res)
 	}()
 
@@ -33,21 +34,21 @@ func TestEtcd(t *testing.T) {
 	if resp, err := cli.Put(ctx, "name", "Hello", clientv3.WithPrevKV()); err != nil {
 		t.Error(err)
 	} else {
-		t.Log("旧值: ",string(resp.PrevKv.Value))
+		t.Log("旧值: ", string(resp.PrevKv.Value))
 	}
 	// 取值
 	if resp, err := cli.Get(ctx, "name", clientv3.WithPrefix()); err != nil {
 		t.Error(err)
 	} else {
-		t.Log("count: ",resp.Count)
-		t.Log("value: ",resp.Kvs)
+		t.Log("count: ", resp.Count)
+		t.Log("value: ", resp.Kvs)
 	}
 
 	// 改值
 	if resp, err := cli.Put(ctx, "name", "pibigstar", clientv3.WithPrevKV()); err != nil {
 		t.Error(err)
 	} else {
-		t.Log("旧值: ",string(resp.PrevKv.Value))
+		t.Log("旧值: ", string(resp.PrevKv.Value))
 	}
 	// 删值
 	if resp, err := cli.Delete(ctx, "name"); err != nil {
@@ -66,7 +67,7 @@ func TestEtcd(t *testing.T) {
 		// 自动续约
 		if responses, err := lease.KeepAlive(ctx, response.ID); err == nil {
 			go func() {
-				for   {
+				for {
 					select {
 					case keepResp := <-responses:
 						if keepResp == nil {

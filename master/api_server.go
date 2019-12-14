@@ -10,7 +10,7 @@ import (
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/ghttp"
 
-	"go-crontab/master/common"
+	"go-crontab/common"
 )
 
 func InitDev() {
@@ -31,17 +31,17 @@ func InitApiServer() {
 	s.BindHandler("/job/list", listJobs)
 	s.BindHandler("/job/kill", killJob)
 
-	go  s.Run()
+	go s.Run()
 }
 
-func createJob( r *ghttp.Request) {
+func createJob(r *ghttp.Request) {
 	var (
 		job *common.Job
 		old *common.Job
 		err error
 	)
 	if r.Body != nil {
-		if err = json.NewDecoder(r.Body).Decode(&job); err !=nil {
+		if err = json.NewDecoder(r.Body).Decode(&job); err != nil {
 			goto ERR
 		}
 	}
@@ -63,7 +63,7 @@ func deleteJob(r *ghttp.Request) {
 		err error
 	)
 	if r.Body != nil {
-		if err = json.NewDecoder(r.Body).Decode(&job); err !=nil {
+		if err = json.NewDecoder(r.Body).Decode(&job); err != nil {
 			goto ERR
 		}
 	}
@@ -81,7 +81,7 @@ ERR:
 func listJobs(r *ghttp.Request) {
 	var (
 		jobs []*common.Job
-		err error
+		err  error
 	)
 	jobs, err = GJobManager.ListJobs(context.Background())
 	if err != nil {
@@ -102,7 +102,7 @@ func killJob(r *ghttp.Request) {
 		err error
 	)
 	if r.Body != nil {
-		if err = json.NewDecoder(r.Body).Decode(&job); err !=nil {
+		if err = json.NewDecoder(r.Body).Decode(&job); err != nil {
 			goto ERR
 		}
 	}
