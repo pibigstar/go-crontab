@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
@@ -16,6 +17,7 @@ var GJobManager *jobManager
 
 type jobManager struct {
 	cli     *clientv3.Client
+	lease   clientv3.Lease
 	watcher clientv3.Watcher
 }
 
@@ -33,9 +35,10 @@ func InitJobManager() error {
 		return err
 	}
 	watcher := clientv3.NewWatcher(cli)
-
+	lease := clientv3.NewLease(cli)
 	GJobManager = &jobManager{
 		cli:     cli,
+		lease:   lease,
 		watcher: watcher,
 	}
 
@@ -52,25 +55,30 @@ func InitJobManager() error {
 		}
 		jobEvent := &common.JobEvent{
 			Job:       job,
-			EventType: mvccpb.PUT,
+			EventType: common.UpdateJob,
 		}
 		GScheduler.PushJobEvent(jobEvent)
 	}
 
 	revision := response.Header.Revision + 1
-	// 监听
+	// 监听 /cron/job/ 目录
 	go GJobManager.WatchJobEvent(revision)
+
+	// 监听 /cron/kill/ 目录
+	go GJobManager.WatchKiller()
 
 	return nil
 }
 
+// 监听任务列表
 func (j *jobManager) WatchJobEvent(revision int64) {
 	watchChan := j.watcher.Watch(context.TODO(), common.EtcdJobPrefix, clientv3.WithRev(revision), clientv3.WithPrefix())
 	for watchResp := range watchChan {
 		for _, event := range watchResp.Events {
 			var (
-				job *common.Job
-				err error
+				jobEvent = &common.JobEvent{}
+				job      *common.Job
+				err      error
 			)
 			switch event.Type {
 			case mvccpb.PUT:
@@ -78,17 +86,45 @@ func (j *jobManager) WatchJobEvent(revision int64) {
 				if err != nil {
 					glog.Errorf("unpack event value, err: %s", err.Error())
 				}
+				jobEvent.EventType = common.UpdateJob
 			case mvccpb.DELETE:
 				job = &common.Job{
 					Name: string(event.Kv.Key),
 				}
+				jobEvent.EventType = common.DeleteJob
 			}
-
-			jobEvent := &common.JobEvent{
-				EventType: event.Type,
-				Job:       job,
-			}
+			jobEvent.Job = job
 			GScheduler.PushJobEvent(jobEvent)
 		}
+	}
+}
+
+// 监听任务强杀列表
+func (j *jobManager) WatchKiller() {
+	watchChan := j.watcher.Watch(context.TODO(), common.EtcdKillJobPrefix, clientv3.WithPrefix())
+	for watchResp := range watchChan {
+		for _, event := range watchResp.Events {
+			var (
+				jobEvent = &common.JobEvent{}
+				job      *common.Job
+			)
+			switch event.Type {
+			case mvccpb.PUT:
+				jobName := strings.TrimPrefix(string(event.Kv.Key), common.EtcdKillJobPrefix)
+				job = &common.Job{
+					Name: jobName,
+				}
+			}
+			jobEvent.Job = job
+			jobEvent.EventType = common.KillJob
+			GScheduler.PushJobEvent(jobEvent)
+		}
+	}
+}
+
+func (j *jobManager) CreateLocker(jobName string) *jobLocker {
+	return &jobLocker{
+		JobName: jobName,
+		lease:   j.lease,
 	}
 }

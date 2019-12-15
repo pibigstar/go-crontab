@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/gogf/gf/os/glog"
 
 	"go-crontab/common"
@@ -17,7 +16,7 @@ var GScheduler *scheduler
 type scheduler struct {
 	JobEventChan      chan *common.JobEvent
 	JobPlanTable      map[string]*common.JobSchedulePlan
-	JobExecutingTable map[string]*common.JobExecuteStatus
+	JobExecutingTable map[string]*common.JobExecuteInfo
 	JobExecuteResult  chan *common.JobExecuteResult
 }
 
@@ -26,7 +25,7 @@ func InitScheduler() {
 	GScheduler = &scheduler{
 		JobEventChan:      make(chan *common.JobEvent, 1000),
 		JobPlanTable:      make(map[string]*common.JobSchedulePlan),
-		JobExecutingTable: make(map[string]*common.JobExecuteStatus),
+		JobExecutingTable: make(map[string]*common.JobExecuteInfo),
 		JobExecuteResult:  make(chan *common.JobExecuteResult, 1000),
 	}
 	go GScheduler.ScheduleLoop()
@@ -59,7 +58,7 @@ func (s *scheduler) ScheduleLoop() {
 // 处理事件
 func (s *scheduler) HandleEvent(event *common.JobEvent) {
 	switch event.EventType {
-	case mvccpb.PUT:
+	case common.UpdateJob:
 		// 更新任务
 		schedulePlan, err := common.BuildJobPlan(event)
 		if err != nil {
@@ -67,10 +66,17 @@ func (s *scheduler) HandleEvent(event *common.JobEvent) {
 			return
 		}
 		s.JobPlanTable[event.Job.Name] = schedulePlan
-	case mvccpb.DELETE:
+	case common.DeleteJob:
 		// 删除任务
 		if _, ok := s.JobPlanTable[event.Job.Name]; ok {
 			delete(s.JobPlanTable, event.Job.Name)
+		}
+	case common.KillJob:
+		// 杀死任务
+		if len(s.JobExecutingTable) > 0 {
+			if info, ok := s.JobExecutingTable[event.Job.Name]; ok {
+				info.CancelFunc()
+			}
 		}
 	}
 }
@@ -108,14 +114,19 @@ func (s *scheduler) TryRunJob(jobPlan *common.JobSchedulePlan) {
 		fmt.Printf("任务: %s, 正在执行中... \n", jobPlan.Job.Name)
 		return
 	}
-	// 放入状态表
-	s.JobExecutingTable[jobPlan.Job.Name] = &common.JobExecuteStatus{
-		Job:      jobPlan.Job,
-		PlanTime: jobPlan.NextTime,
-		RealTime: time.Now(),
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
+	jobExecuteInfo := &common.JobExecuteInfo{
+		Job:        jobPlan.Job,
+		PlanTime:   jobPlan.NextTime,
+		RealTime:   time.Now(),
+		Ctx:        ctx,
+		CancelFunc: cancelFunc,
 	}
+	// 放入状态表
+	s.JobExecutingTable[jobPlan.Job.Name] = jobExecuteInfo
 	// 调用执行器执行任务
-	GExecutor.ExecuteJob(context.TODO(), jobPlan)
+	GExecutor.ExecuteJob(jobExecuteInfo)
 }
 
 func (s *scheduler) PushJobResult(result *common.JobExecuteResult) {
@@ -124,14 +135,14 @@ func (s *scheduler) PushJobResult(result *common.JobExecuteResult) {
 
 func (s *scheduler) HandleJobResult(result *common.JobExecuteResult) {
 	// 从执行状态表中删除
-	if _, ok := s.JobExecutingTable[result.JobPlan.Job.Name]; ok {
-		delete(s.JobExecutingTable, result.JobPlan.Job.Name)
+	if _, ok := s.JobExecutingTable[result.Job.Name]; ok {
+		delete(s.JobExecutingTable, result.Job.Name)
 	}
 
 	if result.Err != nil {
-		fmt.Printf("执行任务：%s  err: %s", result.JobPlan.Job.Name, result.Err)
+		fmt.Printf("执行任务：%s  err: %s \n", result.Job.Name, result.Err)
 		return
 	}
 
-	fmt.Printf("执行任务：%s  执行结果: %s", result.JobPlan.Job.Name, string(result.OutPut))
+	fmt.Printf("执行任务：%s  执行结果: %s \n", result.Job.Name, string(result.OutPut))
 }

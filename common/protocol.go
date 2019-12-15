@@ -1,17 +1,11 @@
 package common
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/gorhill/cronexpr"
 	"time"
-)
-
-const (
-	EtcdJobPrefix     = "/cron/job/"
-	EtcdKillJobPrefix = "/cron/kill/"
 )
 
 type Job struct {
@@ -27,18 +21,22 @@ type JobSchedulePlan struct {
 	NextTime time.Time
 }
 
-// 任务执行状态
-type JobExecuteStatus struct {
+// 任务执行信息
+type JobExecuteInfo struct {
 	Job *Job
 	// 预期的执行时间
 	PlanTime time.Time
 	// 实际的执行时间
 	RealTime time.Time
+	// 任务执行上下文
+	Ctx context.Context
+	// 取消执行函数
+	CancelFunc context.CancelFunc
 }
 
 // 任务执行结果
 type JobExecuteResult struct {
-	JobPlan   *JobSchedulePlan
+	Job       *Job
 	OutPut    []byte
 	Err       error
 	StartTime time.Time
@@ -48,14 +46,14 @@ type JobExecuteResult struct {
 // 任务事件
 type JobEvent struct {
 	Job       *Job
-	EventType mvccpb.Event_EventType
+	EventType EventType
 }
 
 func BuildJobName(job *Job) string {
-	return fmt.Sprintf(EtcdJobPrefix+"%s", job.Name)
+	return EtcdJobPrefix + job.Name
 }
 func BuildKillJobName(job *Job) string {
-	return fmt.Sprintf(EtcdKillJobPrefix+"%s", job.Name)
+	return EtcdKillJobPrefix + job.Name
 }
 
 type Response struct {
