@@ -21,6 +21,12 @@ func main() {
 	if err = worker.InitJobManager(); err != nil {
 		panic(err)
 	}
+
+	// 初始化LogManager
+	if err = worker.InitLogManager(); err != nil {
+		panic(err)
+	}
+
 	fmt.Println("worker start...")
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, os.Kill, syscall.SIGTERM)

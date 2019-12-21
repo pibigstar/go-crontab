@@ -135,7 +135,9 @@ func (s *scheduler) PushJobResult(result *common.JobExecuteResult) {
 
 func (s *scheduler) HandleJobResult(result *common.JobExecuteResult) {
 	// 从执行状态表中删除
-	if _, ok := s.JobExecutingTable[result.Job.Name]; ok {
+	jobExecutingInfo := &common.JobExecuteInfo{}
+	if info, ok := s.JobExecutingTable[result.Job.Name]; ok {
+		jobExecutingInfo = info
 		delete(s.JobExecutingTable, result.Job.Name)
 	}
 
@@ -143,6 +145,21 @@ func (s *scheduler) HandleJobResult(result *common.JobExecuteResult) {
 		fmt.Printf("执行任务：%s  err: %s \n", result.Job.Name, result.Err)
 		return
 	}
+
+	jobLog := &common.JobLog{
+		JobName:      result.Job.Name,
+		Command:      result.Job.Command,
+		Output:       string(result.OutPut),
+		PlanTime:     jobExecutingInfo.PlanTime.Unix(),
+		ScheduleTime: jobExecutingInfo.RealTime.Unix(),
+		StartTime:    result.StartTime.Unix(),
+		EndTime:      result.EndTime.Unix(),
+	}
+
+	if result.Err != nil {
+		jobLog.Error = result.Err.Error()
+	}
+	GLogManager.AddLog(jobLog)
 
 	fmt.Printf("执行任务：%s  执行结果: %s \n", result.Job.Name, string(result.OutPut))
 }

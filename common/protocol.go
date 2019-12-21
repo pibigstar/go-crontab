@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/gorhill/cronexpr"
 	"time"
+
+	"github.com/gorhill/cronexpr"
 )
 
 type Job struct {
@@ -47,6 +48,31 @@ type JobExecuteResult struct {
 type JobEvent struct {
 	Job       *Job
 	EventType EventType
+}
+
+// 任务执行日志
+type JobLog struct {
+	// 任务名
+	JobName string `bson:"jobName"`
+	// 任务命令
+	Command string `bson:"command"`
+	// 执行结果
+	Output string `bson:"output"`
+	// 错误信息
+	Error string `bson:"error"`
+	// 计划执行时间
+	PlanTime int64 `bson:"planTime"`
+	// 实际调度时间
+	ScheduleTime int64 `bson:"scheduleTime"`
+	// 实际执行时间
+	StartTime int64 `bson:"startTime"`
+	// 执行结束时间
+	EndTime int64 `bson:"endTime"`
+}
+
+// 保存到Mongodb批次
+type BatchJobLog struct {
+	Logs []interface{} `json:"logs"`
 }
 
 func BuildJobName(job *Job) string {
