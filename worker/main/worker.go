@@ -27,6 +27,11 @@ func main() {
 		panic(err)
 	}
 
+	// 将节点注册到服务中心
+	if err = worker.InitRegister(); err != nil {
+		panic(err)
+	}
+
 	fmt.Println("worker start...")
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, os.Kill, syscall.SIGTERM)
