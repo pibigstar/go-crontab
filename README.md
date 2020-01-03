@@ -12,4 +12,4 @@
 - etcd
 - goframe
 - mongodb
-- cron
+- cronexpr
